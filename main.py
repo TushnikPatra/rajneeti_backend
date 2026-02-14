@@ -9,7 +9,7 @@ from email_utils import send_reset_email
 from datetime import datetime, timedelta
 import uuid
 
-
+from schemas import ResetPasswordRequest
 from schemas import UserCreate, UserResponse, PostCreate, PostResponse
 from auth import hash_password, verify_password, create_access_token
 from jose import JWTError, jwt
@@ -159,9 +159,12 @@ def forgot_password(email: str, db: Session = Depends(get_db)):
 # =====================
 
 @app.post("/reset-password")
-def reset_password(token: str,
-                   new_password: str,
+@app.post("/reset-password")
+def reset_password(data: ResetPasswordRequest,
                    db: Session = Depends(get_db)):
+
+    token = data.token
+    new_password = data.new_password
 
     user = db.query(User).filter(User.reset_token == token).first()
 
@@ -178,7 +181,6 @@ def reset_password(token: str,
     db.commit()
 
     return {"message": "Password reset successful"}
-
 
 
 

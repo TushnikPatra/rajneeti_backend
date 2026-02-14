@@ -16,6 +16,12 @@ class UserResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+    
+
+    class ResetPasswordRequest(BaseModel):
+     token: str
+     new_password: str
+
 
 
 class PostCreate(BaseModel):
