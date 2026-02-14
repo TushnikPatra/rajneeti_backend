@@ -18,9 +18,6 @@ class UserResponse(BaseModel):
     }
     
 
-    class ResetPasswordRequest(BaseModel):
-     token: str
-     new_password: str
 
 
 
@@ -44,3 +41,10 @@ class PostResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+    from pydantic import BaseModel
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
