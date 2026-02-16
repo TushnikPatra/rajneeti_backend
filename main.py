@@ -72,6 +72,9 @@ def get_current_user(token: str = Depends(oauth2_scheme),
 
     return user
 
+@app.get("/")
+def root():
+    return {"message": "Rajneeti Backend is Live 🇮🇳"}
 
 # =====================
 # REGISTER
