@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 origins = [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
-    "https://jazzy-paprenjak-0d8415.netlify.app/"
+    "https://rajneeti-frontend.vercel.app"
 ]
 
 
@@ -72,7 +72,9 @@ def get_current_user(token: str = Depends(oauth2_scheme),
 
     return user
 
-
+@app.get("/")
+def root():
+    return {"message": "Rajneeti Backend is Live 🇮🇳"}
 
 # =====================
 # REGISTER
@@ -140,18 +142,24 @@ def forgot_password(email: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        # Return success anyway to prevent email enumeration attacks
+        return {"message": "Password reset link sent to email"}
 
-    # ✅ Create reset token (valid for 30 minutes)
+    # Create reset token (valid for 30 minutes)
     reset_token = create_access_token(
-        data={"sub": str(user.id)},
+        data={"sub": str(user.id), "type": "reset"},
         expires_delta=timedelta(minutes=30)
     )
 
-    # ✅ Create reset link
+    # ✅ KEY FIX: Save token + expiry to DB so /reset-password can look it up
+    user.reset_token = reset_token
+    user.reset_token_expiry = datetime.utcnow() + timedelta(minutes=30)
+    db.commit()
+
+    # Create reset link
     reset_link = f"https://rajneeti-frontend.vercel.app/reset-password.html?token={reset_token}"
 
-    # ✅ Send email
+    # Send email
     send_reset_email(user.email, reset_link)
 
     return {"message": "Password reset link sent to email"}
@@ -160,21 +168,22 @@ def forgot_password(email: str, db: Session = Depends(get_db)):
 # =====================
 
 @app.post("/reset-password")
-@app.post("/reset-password")
 def reset_password(data: ResetPasswordRequest,
                    db: Session = Depends(get_db)):
 
     token = data.token
     new_password = data.new_password
 
+    # ✅ Look up user by the stored reset_token in DB
     user = db.query(User).filter(User.reset_token == token).first()
 
     if not user:
-        raise HTTPException(status_code=400, detail="Invalid token")
+        raise HTTPException(status_code=400, detail="Invalid or already used token")
 
-    if user.reset_token_expiry < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="Token expired")
+    if user.reset_token_expiry is None or user.reset_token_expiry < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Token has expired. Please request a new reset link.")
 
+    # Update password and clear the token
     user.hashed_password = hash_password(new_password)
     user.reset_token = None
     user.reset_token_expiry = None
