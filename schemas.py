@@ -43,6 +43,7 @@ class PostResponse(BaseModel):
     language: Optional[str]
     state: Optional[str]
     user_id: UUID
+    author_username: Optional[str] = None
 
     model_config = {
         "from_attributes": True
